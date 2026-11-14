@@ -1,4 +1,4 @@
-:requirements.txt,app.py)streamlit
+streamlit
 pandas
 numpy
 scikit-learn
