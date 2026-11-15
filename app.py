@@ -4,6 +4,7 @@ import numpy as np
 import pickle
 from pathlib import Path
 
+
 # ==========================================
 # 1. PAGE CONFIGURATION
 # ==========================================
@@ -17,8 +18,8 @@ st.set_page_config(
 
 BASE_DIR = Path(__file__).resolve().parent
 
-MODEL_PATH = BASE_DIR / "diabetes_classifier.pkl"
-SCALER_PATH = BASE_DIR / "scaler.pkl"
+MODEL_PATH = BASE_DIR / "diabetes_classifier (5).pkl"
+SCALER_PATH = BASE_DIR / "scaler (5).pkl"
 
 
 # ==========================================
@@ -78,12 +79,12 @@ def load_model():
 
     if not MODEL_PATH.exists():
         raise FileNotFoundError(
-            "diabetes_classifier.pkl was not found."
+            f"Model file not found: {MODEL_PATH.name}"
         )
 
     if not SCALER_PATH.exists():
         raise FileNotFoundError(
-            "scaler.pkl was not found."
+            f"Scaler file not found: {SCALER_PATH.name}"
         )
 
     with open(MODEL_PATH, "rb") as file:
@@ -206,7 +207,8 @@ elif page == "Diabetes Prediction":
                 "Pregnancies",
                 min_value=0,
                 max_value=30,
-                value=0
+                value=0,
+                step=1
             )
 
             glucose = st.number_input(
@@ -257,7 +259,8 @@ elif page == "Diabetes Prediction":
                 "Age",
                 min_value=1,
                 max_value=120,
-                value=30
+                value=30,
+                step=1
             )
 
         st.markdown("---")
@@ -327,7 +330,7 @@ elif page == "Diabetes Prediction":
                     "of diabetes."
                 )
 
-            else:
+            elif prediction == 0:
 
                 st.success(
                     "✅ Negative Diabetes Prediction"
@@ -336,6 +339,12 @@ elif page == "Diabetes Prediction":
                 st.info(
                     "The model does not predict diabetes "
                     "based on the provided measurements."
+                )
+
+            else:
+
+                st.warning(
+                    f"Model returned an unexpected class: {prediction}"
                 )
 
 
@@ -353,9 +362,9 @@ elif page == "Diabetes Prediction":
 
                 col1, col2 = st.columns(2)
 
-                with col1:
+                if 0 in classes:
 
-                    if 0 in classes:
+                    with col1:
 
                         no_diabetes_probability = (
                             probabilities[classes.index(0)] * 100
@@ -366,9 +375,9 @@ elif page == "Diabetes Prediction":
                             f"{no_diabetes_probability:.2f}%"
                         )
 
-                with col2:
+                if 1 in classes:
 
-                    if 1 in classes:
+                    with col2:
 
                         diabetes_probability = (
                             probabilities[classes.index(1)] * 100
