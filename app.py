@@ -1,49 +1,62 @@
+
 import streamlit as st
 import pandas as pd
-import pickle
+import numpy as np
+import joblib
+from pathlib import Path
 
-# =========================
-# PAGE CONFIG
-# =========================
+# ==========================================
+# 1. PAGE CONFIGURATION
+# ==========================================
 
 st.set_page_config(
-    page_title="Diabetes Prediction",
+    page_title="Diabetes Prediction System",
     page_icon="🩺",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# =========================
-# CUSTOM DESIGN
-# =========================
+# ==========================================
+# 2. CUSTOM CSS
+# ==========================================
 
 st.markdown("""
 <style>
 
-.stApp {
-    background-color: #F4F8FC;
+.main {
+    background-color: #f5f8fc;
 }
 
-h1 {
-    color: #123B5D;
+.block-container {
+    padding-top: 2rem;
+}
+
+.title {
+    font-size: 38px;
+    font-weight: bold;
+    color: #173b67;
     text-align: center;
 }
 
-h2, h3 {
-    color: #164E70;
+.subtitle {
+    font-size: 17px;
+    color: #64748b;
+    text-align: center;
 }
 
-.stButton button {
-    background-color: #087E8B;
+div.stButton > button {
+    background-color: #1677c8;
     color: white;
     border-radius: 10px;
-    height: 50px;
-    font-size: 18px;
+    border: none;
+    padding: 12px 25px;
+    font-size: 17px;
     font-weight: bold;
     width: 100%;
 }
 
-.stButton button:hover {
-    background-color: #05616B;
+div.stButton > button:hover {
+    background-color: #105b9b;
     color: white;
 }
 
@@ -51,198 +64,381 @@ h2, h3 {
 """, unsafe_allow_html=True)
 
 
-# =========================
-# LOAD MODEL AND SCALER
-# =========================
+# ==========================================
+# 3. LOAD MODEL AND SCALER
+# ==========================================
+
+BASE_DIR = Path(__file__).resolve().parent
+
+MODEL_PATH = BASE_DIR / "diabetes_classifier.pkl"
+SCALER_PATH = BASE_DIR / "scaler.pkl"
+
 
 @st.cache_resource
 def load_model():
 
-    with open("diabetes_classifier (5).pkl", "rb") as file:
-        model = pickle.load(file)
+    if not MODEL_PATH.exists():
+        raise FileNotFoundError(
+            f"Model file not found: {MODEL_PATH.name}"
+        )
 
-    with open("scaler (5).pkl", "rb") as file:
-        scaler = pickle.load(file)
+    if not SCALER_PATH.exists():
+        raise FileNotFoundError(
+            f"Scaler file not found: {SCALER_PATH.name}"
+        )
+
+    model = joblib.load(MODEL_PATH)
+    scaler = joblib.load(SCALER_PATH)
 
     return model, scaler
 
 
-try:
-    model, scaler = load_model()
+# ==========================================
+# 4. SIDEBAR
+# ==========================================
 
-except Exception as e:
-    st.error("Unable to load model or scaler.")
-    st.exception(e)
-    st.stop()
+st.sidebar.title("🩺 Diabetes System")
 
+st.sidebar.markdown("---")
 
-# =========================
-# HEADER
-# =========================
-
-st.title("🩺 Diabetes Prediction System")
-
-st.markdown(
-    "<center>Machine Learning Based Diabetes Prediction</center>",
-    unsafe_allow_html=True
+page = st.sidebar.radio(
+    "Navigation",
+    ["Home", "Diabetes Prediction", "About"]
 )
 
-st.divider()
+st.sidebar.markdown("---")
 
-st.info(
-    "Enter patient information below "
-    "to get a prediction from our Machine Learning Model."
+st.sidebar.info(
+    "Machine Learning Based Diabetes Prediction System"
 )
 
 
-# =========================
-# INPUT FORM
-# =========================
+# ==========================================
+# 5. HOME PAGE
+# ==========================================
 
-st.header("Patient Information")
+if page == "Home":
 
-with st.form("patient_form"):
+    st.markdown(
+        '<p class="title">Diabetes Prediction System</p>',
+        unsafe_allow_html=True
+    )
 
-    col1, col2 = st.columns(2)
+    st.markdown(
+        '<p class="subtitle">Machine Learning Based Healthcare Application</p>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown("---")
+
+    col1, col2 = st.columns([2, 1])
 
     with col1:
 
-        pregnancies = st.number_input(
-            "Pregnancies",
-            min_value=0,
-            max_value=20,
-            value=0
-        )
+        st.subheader("Welcome!")
 
-        glucose = st.number_input(
-            "Glucose",
-            min_value=0,
-            max_value=300,
-            value=120
-        )
+        st.write("""
+        This application uses Machine Learning to estimate
+        whether a person may have an increased likelihood
+        of diabetes based on selected health measurements.
 
-        blood_pressure = st.number_input(
-            "Blood Pressure",
-            min_value=0,
-            max_value=200,
-            value=70
-        )
+        The system uses a trained machine learning model
+        and a data scaler to process patient information.
+        """)
 
-        skin_thickness = st.number_input(
-            "Skin Thickness",
-            min_value=0,
-            max_value=100,
-            value=20
+        st.success(
+            "Navigate to Diabetes Prediction to start."
         )
 
     with col2:
 
-        insulin = st.number_input(
-            "Insulin",
-            min_value=0,
-            max_value=900,
-            value=80
-        )
+        st.markdown("### Application Features")
 
-        bmi = st.number_input(
-            "BMI",
-            min_value=0.0,
-            max_value=80.0,
-            value=25.0
-        )
+        st.write("✅ Patient data input")
+        st.write("✅ Machine Learning prediction")
+        st.write("✅ Scaled input data")
+        st.write("✅ Prediction result")
+        st.write("✅ Simple interface")
 
-        diabetes_pedigree = st.number_input(
-            "Diabetes Pedigree Function",
-            min_value=0.0,
-            max_value=3.0,
-            value=0.5
-        )
 
-        age = st.number_input(
-            "Age",
-            min_value=1,
-            max_value=120,
-            value=30
-        )
+# ==========================================
+# 6. DIABETES PREDICTION PAGE
+# ==========================================
 
-    predict_button = st.form_submit_button(
-        "🔍 Predict Diabetes",
-        use_container_width=True
+elif page == "Diabetes Prediction":
+
+    st.title("🩺 Diabetes Prediction")
+
+    st.write(
+        "Enter the patient's information below."
     )
 
+    st.markdown("---")
 
-# =========================
-# PREDICTION
-# =========================
-
-if predict_button:
-
-    input_data = pd.DataFrame([[
-        pregnancies,
-        glucose,
-        blood_pressure,
-        skin_thickness,
-        insulin,
-        bmi,
-        diabetes_pedigree,
-        age
-    ]], columns=[
-        "Pregnancies",
-        "Glucose",
-        "BloodPressure",
-        "SkinThickness",
-        "Insulin",
-        "BMI",
-        "DiabetesPedigreeFunction",
-        "Age"
-    ])
+    # Load model and scaler
 
     try:
 
-        scaled_input = scaler.transform(input_data)
+        model, scaler = load_model()
 
-        prediction = model.predict(scaled_input)
-
-        st.divider()
-
-        st.header("Prediction Result")
-
-        if prediction[0] == 1:
-
-            st.error(
-                "⚠️ The Model Predicts: Diabetes"
-            )
-
-        else:
-
-            st.success(
-                "✅ The Model Predicts: No Diabetes"
-            )
-
-        st.caption(
-            "This is an educational machine learning prediction, "
-            "not a medical diagnosis."
-        )
+        st.success("Model and Scaler loaded successfully!")
 
     except Exception as e:
 
-        st.error("Prediction failed.")
+        st.error("Unable to load model or scaler.")
+
         st.exception(e)
 
+        st.stop()
 
-# =========================
-# FOOTER
-# =========================
 
-st.divider()
+    # Patient input form
 
-st.markdown("""
-<center>
-<p style="color:gray;">
-Diabetes Prediction System
-<br>
-Powered by SVM - Linear Kernel
-</p>
-</center>
-""", unsafe_allow_html=True)
-   
+    st.subheader("Patient Information")
+
+    with st.form("prediction_form"):
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            pregnancies = st.number_input(
+                "Pregnancies",
+                min_value=0,
+                max_value=30,
+                value=0,
+                step=1
+            )
+
+            glucose = st.number_input(
+                "Glucose Level",
+                min_value=0.0,
+                max_value=500.0,
+                value=120.0
+            )
+
+            blood_pressure = st.number_input(
+                "Blood Pressure",
+                min_value=0.0,
+                max_value=300.0,
+                value=70.0
+            )
+
+            skin_thickness = st.number_input(
+                "Skin Thickness",
+                min_value=0.0,
+                max_value=150.0,
+                value=20.0
+            )
+
+        with col2:
+
+            insulin = st.number_input(
+                "Insulin",
+                min_value=0.0,
+                max_value=3000.0,
+                value=80.0
+            )
+
+            bmi = st.number_input(
+                "BMI",
+                min_value=0.0,
+                max_value=150.0,
+                value=25.0
+            )
+
+            diabetes_pedigree = st.number_input(
+                "Diabetes Pedigree Function",
+                min_value=0.0,
+                max_value=5.0,
+                value=0.5
+            )
+
+            age = st.number_input(
+                "Age",
+                min_value=1,
+                max_value=120,
+                value=30,
+                step=1
+            )
+
+        st.markdown("---")
+
+        submitted = st.form_submit_button(
+            "🔍 Predict Diabetes"
+        )
+
+
+    # ==========================================
+    # 7. PREDICTION PROCESS
+    # ==========================================
+
+    if submitted:
+
+        try:
+
+            # Arrange features in training order
+
+            feature_names = [
+                "Pregnancies",
+                "Glucose",
+                "BloodPressure",
+                "SkinThickness",
+                "Insulin",
+                "BMI",
+                "DiabetesPedigreeFunction",
+                "Age"
+            ]
+
+            input_data = pd.DataFrame(
+                [[
+                    pregnancies,
+                    glucose,
+                    blood_pressure,
+                    skin_thickness,
+                    insulin,
+                    bmi,
+                    diabetes_pedigree,
+                    age
+                ]],
+                columns=feature_names
+            )
+
+            # Check scaler feature count
+
+            if hasattr(scaler, "n_features_in_"):
+
+                if scaler.n_features_in_ != len(feature_names):
+
+                    raise ValueError(
+                        "The number of input features does not "
+                        "match the trained scaler."
+                    )
+
+            # Scale patient data
+
+            scaled_data = scaler.transform(input_data)
+
+            # Make prediction
+
+            prediction = model.predict(scaled_data)[0]
+
+            st.markdown("---")
+
+            st.subheader("Prediction Result")
+
+            if prediction == 1:
+
+                st.error(
+                    "⚠️ The model predicts a positive diabetes result."
+                )
+
+                st.warning(
+                    "The model identified an increased likelihood "
+                    "of diabetes based on the provided measurements."
+                )
+
+            else:
+
+                st.success(
+                    "✅ The model predicts a negative diabetes result."
+                )
+
+                st.info(
+                    "The model did not identify a positive diabetes "
+                    "prediction based on the provided measurements."
+                )
+
+
+            # ==========================================
+            # 8. PREDICTION PROBABILITY
+            # ==========================================
+
+            if hasattr(model, "predict_proba"):
+
+                probabilities = model.predict_proba(scaled_data)[0]
+
+                st.markdown("### Prediction Probability")
+
+                col1, col2 = st.columns(2)
+
+                with col1:
+
+                    st.metric(
+                        "No Diabetes",
+                        f"{probabilities[0] * 100:.2f}%"
+                    )
+
+                with col2:
+
+                    st.metric(
+                        "Diabetes",
+                        f"{probabilities[1] * 100:.2f}%"
+                    )
+
+                st.progress(
+                    float(probabilities[1])
+                )
+
+            st.markdown("---")
+
+            st.caption(
+                "This result is generated by a machine learning model "
+                "and is not a medical diagnosis. Consult a qualified "
+                "healthcare professional for medical assessment."
+            )
+
+        except Exception as e:
+
+            st.error("An error occurred during prediction.")
+
+            st.exception(e)
+
+
+# ==========================================
+# 9. ABOUT PAGE
+# ==========================================
+
+elif page == "About":
+
+    st.title("About The Project")
+
+    st.markdown("""
+    ### Diabetes Prediction Using Machine Learning
+
+    This project aims to estimate diabetes likelihood
+    using patient health measurements.
+
+    ### Technologies Used
+
+    - Python
+    - Streamlit
+    - Pandas
+    - NumPy
+    - Scikit-learn
+    - Joblib
+
+    ### Project Components
+
+    1. Trained Machine Learning Model
+    2. Data Scaler
+    3. Streamlit User Interface
+    4. Prediction System
+
+    ### Objective
+
+    To provide a simple interface for exploring
+    machine learning-based diabetes predictions.
+    """)
+
+
+# ==========================================
+# 10. FOOTER
+# ==========================================
+
+st.markdown("---")
+
+st.markdown(
+    "<center>Diabetes Prediction System | Machine Learning Project</center>",
+    unsafe_allow_html=True
+)
