@@ -58,10 +58,10 @@ h2, h3 {
 @st.cache_resource
 def load_model():
 
-    with open("diabetes_classifier.pkl", "rb") as file:
+    with open("diabetes_classifier (5).pkl", "rb") as file:
         model = pickle.load(file)
 
-    with open("scaler.pkl", "rb") as file:
+    with open("scaler (5).pkl", "rb") as file:
         scaler = pickle.load(file)
 
     return model, scaler
