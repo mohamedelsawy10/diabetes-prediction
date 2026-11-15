@@ -1,8 +1,8 @@
-
+```python
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
+import pickle
 from pathlib import Path
 
 # ==========================================
@@ -15,6 +15,12 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+BASE_DIR = Path(__file__).resolve().parent
+
+MODEL_PATH = BASE_DIR / "diabetes_classifier.pkl"
+SCALER_PATH = BASE_DIR / "scaler.pkl"
+
 
 # ==========================================
 # 2. CUSTOM CSS
@@ -68,27 +74,24 @@ div.stButton > button:hover {
 # 3. LOAD MODEL AND SCALER
 # ==========================================
 
-BASE_DIR = Path(__file__).resolve().parent
-
-MODEL_PATH = BASE_DIR / "diabetes_classifier.pkl"
-SCALER_PATH = BASE_DIR / "scaler.pkl"
-
-
 @st.cache_resource
 def load_model():
 
     if not MODEL_PATH.exists():
         raise FileNotFoundError(
-            f"Model file not found: {MODEL_PATH.name}"
+            "diabetes_classifier.pkl was not found."
         )
 
     if not SCALER_PATH.exists():
         raise FileNotFoundError(
-            f"Scaler file not found: {SCALER_PATH.name}"
+            "scaler.pkl was not found."
         )
 
-    model = joblib.load(MODEL_PATH)
-    scaler = joblib.load(SCALER_PATH)
+    with open(MODEL_PATH, "rb") as file:
+        model = pickle.load(file)
+
+    with open(SCALER_PATH, "rb") as file:
+        scaler = pickle.load(file)
 
     return model, scaler
 
@@ -139,11 +142,11 @@ if page == "Home":
 
         st.write("""
         This application uses Machine Learning to estimate
-        whether a person may have an increased likelihood
-        of diabetes based on selected health measurements.
+        the likelihood of diabetes based on patient health
+        measurements.
 
         The system uses a trained machine learning model
-        and a data scaler to process patient information.
+        and a scaler to process patient information.
         """)
 
         st.success(
@@ -152,12 +155,12 @@ if page == "Home":
 
     with col2:
 
-        st.markdown("### Application Features")
+        st.subheader("Application Features")
 
         st.write("✅ Patient data input")
         st.write("✅ Machine Learning prediction")
-        st.write("✅ Scaled input data")
-        st.write("✅ Prediction result")
+        st.write("✅ Data scaling")
+        st.write("✅ Prediction results")
         st.write("✅ Simple interface")
 
 
@@ -175,13 +178,13 @@ elif page == "Diabetes Prediction":
 
     st.markdown("---")
 
-    # Load model and scaler
-
     try:
 
         model, scaler = load_model()
 
-        st.success("Model and Scaler loaded successfully!")
+        st.success(
+            "Model and Scaler loaded successfully!"
+        )
 
     except Exception as e:
 
@@ -191,8 +194,6 @@ elif page == "Diabetes Prediction":
 
         st.stop()
 
-
-    # Patient input form
 
     st.subheader("Patient Information")
 
@@ -206,8 +207,7 @@ elif page == "Diabetes Prediction":
                 "Pregnancies",
                 min_value=0,
                 max_value=30,
-                value=0,
-                step=1
+                value=0
             )
 
             glucose = st.number_input(
@@ -258,8 +258,7 @@ elif page == "Diabetes Prediction":
                 "Age",
                 min_value=1,
                 max_value=120,
-                value=30,
-                step=1
+                value=30
             )
 
         st.markdown("---")
@@ -276,8 +275,6 @@ elif page == "Diabetes Prediction":
     if submitted:
 
         try:
-
-            # Arrange features in training order
 
             feature_names = [
                 "Pregnancies",
@@ -304,22 +301,15 @@ elif page == "Diabetes Prediction":
                 columns=feature_names
             )
 
-            # Check scaler feature count
-
             if hasattr(scaler, "n_features_in_"):
 
-                if scaler.n_features_in_ != len(feature_names):
+                if scaler.n_features_in_ != 8:
 
                     raise ValueError(
-                        "The number of input features does not "
-                        "match the trained scaler."
+                        "Scaler must have exactly 8 input features."
                     )
 
-            # Scale patient data
-
             scaled_data = scaler.transform(input_data)
-
-            # Make prediction
 
             prediction = model.predict(scaled_data)[0]
 
@@ -330,67 +320,84 @@ elif page == "Diabetes Prediction":
             if prediction == 1:
 
                 st.error(
-                    "⚠️ The model predicts a positive diabetes result."
+                    "⚠️ Positive Diabetes Prediction"
                 )
 
                 st.warning(
-                    "The model identified an increased likelihood "
-                    "of diabetes based on the provided measurements."
+                    "The model predicts an increased likelihood "
+                    "of diabetes."
                 )
 
             else:
 
                 st.success(
-                    "✅ The model predicts a negative diabetes result."
+                    "✅ Negative Diabetes Prediction"
                 )
 
                 st.info(
-                    "The model did not identify a positive diabetes "
-                    "prediction based on the provided measurements."
+                    "The model does not predict diabetes "
+                    "based on the provided measurements."
                 )
 
 
-            # ==========================================
+            # ==================================
             # 8. PREDICTION PROBABILITY
-            # ==========================================
+            # ==================================
 
             if hasattr(model, "predict_proba"):
 
-                probabilities = model.predict_proba(scaled_data)[0]
+                probabilities = model.predict_proba(
+                    scaled_data
+                )[0]
 
-                st.markdown("### Prediction Probability")
+                classes = list(model.classes_)
 
                 col1, col2 = st.columns(2)
 
                 with col1:
 
-                    st.metric(
-                        "No Diabetes",
-                        f"{probabilities[0] * 100:.2f}%"
-                    )
+                    if 0 in classes:
+
+                        no_diabetes_probability = (
+                            probabilities[classes.index(0)] * 100
+                        )
+
+                        st.metric(
+                            "No Diabetes",
+                            f"{no_diabetes_probability:.2f}%"
+                        )
 
                 with col2:
 
-                    st.metric(
-                        "Diabetes",
-                        f"{probabilities[1] * 100:.2f}%"
-                    )
+                    if 1 in classes:
 
-                st.progress(
-                    float(probabilities[1])
-                )
+                        diabetes_probability = (
+                            probabilities[classes.index(1)] * 100
+                        )
+
+                        st.metric(
+                            "Diabetes",
+                            f"{diabetes_probability:.2f}%"
+                        )
+
+                        st.progress(
+                            float(probabilities[classes.index(1)])
+                        )
 
             st.markdown("---")
 
             st.caption(
-                "This result is generated by a machine learning model "
-                "and is not a medical diagnosis. Consult a qualified "
-                "healthcare professional for medical assessment."
+                "Disclaimer: This application is for educational "
+                "and research purposes only. It does not provide "
+                "a medical diagnosis. Please consult a healthcare "
+                "professional for medical advice."
             )
 
         except Exception as e:
 
-            st.error("An error occurred during prediction.")
+            st.error(
+                "An error occurred during prediction."
+            )
 
             st.exception(e)
 
@@ -406,8 +413,8 @@ elif page == "About":
     st.markdown("""
     ### Diabetes Prediction Using Machine Learning
 
-    This project aims to estimate diabetes likelihood
-    using patient health measurements.
+    This project uses Machine Learning to estimate
+    diabetes likelihood based on patient health measurements.
 
     ### Technologies Used
 
@@ -416,7 +423,7 @@ elif page == "About":
     - Pandas
     - NumPy
     - Scikit-learn
-    - Joblib
+    - Pickle
 
     ### Project Components
 
@@ -439,6 +446,12 @@ elif page == "About":
 st.markdown("---")
 
 st.markdown(
-    "<center>Diabetes Prediction System | Machine Learning Project</center>",
+    """
+    <center>
+    Diabetes Prediction System | Machine Learning Project
+    </center>
+    """,
     unsafe_allow_html=True
 )
+```
+             
