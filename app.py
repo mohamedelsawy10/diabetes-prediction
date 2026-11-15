@@ -2,74 +2,73 @@ import streamlit as st
 import pandas as pd
 import pickle
 
-# ==============================
-# PAGE CONFIGURATION
-# ==============================
+# =========================
+# PAGE CONFIG
+# =========================
 
 st.set_page_config(
-    page_title="Diabetes Prediction System",
+    page_title="Diabetes Prediction",
     page_icon="🩺",
     layout="wide"
 )
 
-# ==============================
-# CUSTOM CSS
-# ==============================
+# =========================
+# CUSTOM DESIGN
+# =========================
 
 st.markdown("""
 <style>
 
-.main {
-    background-color: #F5F8FC;
-}
-
 .stApp {
-    background-color: #F5F8FC;
+    background-color: #F4F8FC;
 }
 
-.title {
-    text-align: center;
+h1 {
     color: #123B5D;
-    font-size: 38px;
-    font-weight: bold;
+    text-align: center;
 }
 
-.subtitle {
-    text-align: center;
-    color: #607D8B;
-    font-size: 17px;
+h2, h3 {
+    color: #164E70;
 }
 
-.result-box {
-    padding: 25px;
-    border-radius: 15px;
-    text-align: center;
-    font-size: 23px;
+.stButton button {
+    background-color: #087E8B;
+    color: white;
+    border-radius: 10px;
+    height: 50px;
+    font-size: 18px;
     font-weight: bold;
+    width: 100%;
+}
+
+.stButton button:hover {
+    background-color: #05616B;
+    color: white;
 }
 
 </style>
 """, unsafe_allow_html=True)
 
 
-# ==============================
+# =========================
 # LOAD MODEL AND SCALER
-# ==============================
+# =========================
 
 @st.cache_resource
-def load_files():
+def load_model():
 
-    with open("diabetes_model.pkl", "rb") as f:
-        model = pickle.load(f)
+    with open("diabetes_model.pkl", "rb") as file:
+        model = pickle.load(file)
 
-    with open("scaler.pkl", "rb") as f:
-        scaler = pickle.load(f)
+    with open("scaler.pkl", "rb") as file:
+        scaler = pickle.load(file)
 
     return model, scaler
 
 
 try:
-    model, scaler = load_files()
+    model, scaler = load_model()
 
 except Exception as e:
     st.error("Unable to load model or scaler.")
@@ -77,35 +76,32 @@ except Exception as e:
     st.stop()
 
 
-# ==============================
+# =========================
 # HEADER
-# ==============================
+# =========================
+
+st.title("🩺 Diabetes Prediction System")
 
 st.markdown(
-    '<p class="title">🩺 Diabetes Prediction System</p>',
-    unsafe_allow_html=True
-)
-
-st.markdown(
-    '<p class="subtitle">Machine Learning Based Diabetes Prediction</p>',
+    "<center>Machine Learning Based Diabetes Prediction</center>",
     unsafe_allow_html=True
 )
 
 st.divider()
 
 st.info(
-    "Enter the patient's medical information "
-    "to predict the likelihood of diabetes."
+    "Enter patient information below "
+    "to get a prediction from our Machine Learning Model."
 )
 
 
-# ==============================
-# PATIENT INPUT FORM
-# ==============================
+# =========================
+# INPUT FORM
+# =========================
 
-st.subheader("Patient Information")
+st.header("Patient Information")
 
-with st.form("diabetes_form"):
+with st.form("patient_form"):
 
     col1, col2 = st.columns(2)
 
@@ -119,7 +115,7 @@ with st.form("diabetes_form"):
         )
 
         glucose = st.number_input(
-            "Glucose Level",
+            "Glucose",
             min_value=0,
             max_value=300,
             value=120
@@ -152,16 +148,14 @@ with st.form("diabetes_form"):
             "BMI",
             min_value=0.0,
             max_value=80.0,
-            value=25.0,
-            step=0.1
+            value=25.0
         )
 
         diabetes_pedigree = st.number_input(
             "Diabetes Pedigree Function",
             min_value=0.0,
             max_value=3.0,
-            value=0.5,
-            step=0.01
+            value=0.5
         )
 
         age = st.number_input(
@@ -171,52 +165,52 @@ with st.form("diabetes_form"):
             value=30
         )
 
-    submit = st.form_submit_button(
+    predict_button = st.form_submit_button(
         "🔍 Predict Diabetes",
         use_container_width=True
     )
 
 
-# ==============================
+# =========================
 # PREDICTION
-# ==============================
+# =========================
 
-if submit:
+if predict_button:
 
-    input_data = pd.DataFrame([{
-
-        "Pregnancies": pregnancies,
-        "Glucose": glucose,
-        "BloodPressure": blood_pressure,
-        "SkinThickness": skin_thickness,
-        "Insulin": insulin,
-        "BMI": bmi,
-        "DiabetesPedigreeFunction": diabetes_pedigree,
-        "Age": age
-
-    }])
+    input_data = pd.DataFrame([[
+        pregnancies,
+        glucose,
+        blood_pressure,
+        skin_thickness,
+        insulin,
+        bmi,
+        diabetes_pedigree,
+        age
+    ]], columns=[
+        "Pregnancies",
+        "Glucose",
+        "BloodPressure",
+        "SkinThickness",
+        "Insulin",
+        "BMI",
+        "DiabetesPedigreeFunction",
+        "Age"
+    ])
 
     try:
 
-        # Apply the saved scaler
-        scaled_data = scaler.transform(input_data)
+        scaled_input = scaler.transform(input_data)
 
-        # Model prediction
-        prediction = model.predict(scaled_data)
+        prediction = model.predict(scaled_input)
 
         st.divider()
 
-        st.subheader("Prediction Result")
+        st.header("Prediction Result")
 
         if prediction[0] == 1:
 
             st.error(
                 "⚠️ The Model Predicts: Diabetes"
-            )
-
-            st.write(
-                "The model classified this input "
-                "as belonging to the diabetes class."
             )
 
         else:
@@ -225,37 +219,30 @@ if submit:
                 "✅ The Model Predicts: No Diabetes"
             )
 
-            st.write(
-                "The model classified this input "
-                "as belonging to the non-diabetes class."
-            )
-
         st.caption(
-            "This result is a machine learning prediction "
-            "for educational purposes, not a medical diagnosis."
+            "This is an educational machine learning prediction, "
+            "not a medical diagnosis."
         )
 
     except Exception as e:
 
-        st.error("Prediction Error")
+        st.error("Prediction failed.")
         st.exception(e)
 
 
-# ==============================
+# =========================
 # FOOTER
-# ==============================
+# =========================
 
 st.divider()
 
-st.markdown(
-    """
-    <center>
-    <p style='color:gray;'>
-    Diabetes Prediction System | Powered by Machine Learning
-    <br>
-    SVM Linear Kernel
-    </p>
-    </center>
-    """,
-    unsafe_allow_html=True
-)
+st.markdown("""
+<center>
+<p style="color:gray;">
+Diabetes Prediction System
+<br>
+Powered by SVM - Linear Kernel
+</p>
+</center>
+""", unsafe_allow_html=True)
+   
